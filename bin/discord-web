@@ -8,5 +8,5 @@ then
     zenity --error --text "Google Chrome does not seem to be present on your system."
     exit 127
 else
-    google-chrome-stable --app="https://app.discord.com/" --disable-infobars --disable-logging --start-maximized & >/dev/null 2>&1
+    google-chrome-stable --app="https://app.discord.com/" --disable-infobars --disable-logging --start-maximized >/dev/null 2>&1 & 
 fi
