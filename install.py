@@ -173,25 +173,23 @@ class Program:
                 _ = file.write(contents)
 
     def run(self) -> int:
-        match self.release_channel:
-            case "auto":
-                self.print_debug("release channel is set to 'auto'")
-                self.print_debug(
-                    "determining which channel is installed...",
-                )
+        if self.release_channel == "auto":
+            self.print_debug("release channel is set to 'auto'")
+            self.print_debug(
+                "determining which channel is installed...",
+            )
 
-                release_channel = self.determine_release_channel()
-            case _:
-                if not self.check_release_channel(self.release_channel):
-                    self.print_error(
-                        f"The release channel {self.release_channel} does "
-                        "not seem to be installed on your system.",
-                        f"try using {RELEASE_CHANNEL_ARG}='auto'",
-                    )
+            release_channel = self.determine_release_channel()
+        elif not self.check_release_channel(self.release_channel):
+            self.print_error(
+                f"The release channel {self.release_channel} does "
+                "not seem to be installed on your system.",
+                f"try using {RELEASE_CHANNEL_ARG}='auto'",
+            )
 
-                    return os.EX_UNAVAILABLE
-
-                release_channel = self.release_channel
+            return os.EX_UNAVAILABLE
+        else:
+            release_channel = self.release_channel
 
         if release_channel is None:
             self.print_error(
