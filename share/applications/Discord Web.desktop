@@ -1,7 +1,0 @@
-[Desktop Entry]
-Name=Discord Web
-Exec=discord-web
-# TODO: use custom icon to distinguish with normal app
-Icon=discord
-Type=Application
-Terminal=false
