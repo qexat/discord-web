@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import enum
 import os
+import stat
 import subprocess
 import sys
 import textwrap
@@ -202,10 +203,15 @@ class Program:
 
         self.print_debug(f"release channel is {release_channel}")
 
+        launching_path = os.path.join(BIN_PATH, "discord-web")
+
         self.write_file(
-            os.path.join(BIN_PATH, "discord-web"),
+            launching_path,
             LAUNCHING_SCRIPT_TEMPLATE.format(release_channel),
         )
+
+        file_stat = os.stat(launching_path)
+        os.chmod(launching_path, file_stat.st_mode | stat.S_IEXEC)
 
         self.write_file(
             os.path.join(DESKTOP_DATA_PATH, "Discord Web.desktop"),
