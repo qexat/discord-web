@@ -95,14 +95,16 @@ class Program:
         if hints:
             for hint in hints:
                 print(
-                    f"\x1b[1;34mHINT:\x1b[22;39m {hint}", file=sys.stderr
+                    f"\x1b[1;34mHINT:\x1b[22;39m {hint}",
+                    file=sys.stderr,
                 )
 
     def print_debug(self, *lines: str) -> None:
         if self.debug:
             for line in lines:
                 print(
-                    f"\x1b[1;35mDEBUG:\x1b[22;39m {line}", file=sys.stderr
+                    f"\x1b[1;35mDEBUG:\x1b[22;39m {line}",
+                    file=sys.stderr,
                 )
 
     def print_file(self, path: str, contents: str) -> None:
