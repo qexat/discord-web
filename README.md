@@ -16,6 +16,6 @@ This list is unlikely to be exhaustive. If you find an assumption that is worth 
 Simply run `./install.py`.
 Help is available with `--help`.
 
-## Deinstallation
+## Uninstallation
 
 `./uninstall.py` will take care of it.
