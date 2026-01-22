@@ -177,7 +177,7 @@ class Program:
             case "auto":
                 self.print_debug("release channel is set to 'auto'")
                 self.print_debug(
-                    "determining which channel is installed..."
+                    "determining which channel is installed...",
                 )
 
                 release_channel = self.determine_release_channel()
