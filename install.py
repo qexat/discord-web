@@ -11,6 +11,8 @@ import sys
 import textwrap
 from typing import Literal
 
+import alloy
+
 HOME = os.environ["HOME"]
 BIN_PATH = os.path.join(HOME, ".local/bin/")
 DATA_PATH = os.environ.get(
@@ -38,28 +40,15 @@ Terminal=false
 """
 
 
-class ReleaseChannel(enum.StrEnum):
-    """
-    Chrome release channel option.
-    """
-
-    STABLE = enum.auto()
-    BETA = enum.auto()
-    DEV = enum.auto()
-    CANARY = enum.auto()
-
-
 class Program:
     def __init__(
         self,
         *,
-        chrome_release_channel: ReleaseChannel | Literal["auto"],
+        chrome_release_channel: alloy.ReleaseChannel | Literal["auto"],
         debug: bool,
         dry_run: bool,
     ) -> None:
-        self.release_channel: ReleaseChannel | Literal["auto"] = (
-            chrome_release_channel
-        )
+        self.chosen_channel = alloy.ReleaseChannel.parse(chrome_release_channel)
         self.debug = True if dry_run else debug
         self.dry_run = dry_run
 
@@ -70,7 +59,7 @@ class Program:
         _ = parser.add_argument(
             RELEASE_CHANNEL_ARG,
             "-c",
-            choices=(*ReleaseChannel, "auto"),
+            choices=(*alloy.ReleaseChannel, "auto"),
             default="auto",
             help="specify which Chrome release channel to use\n 'auto' "
             "will search for the most stable release installed on your "
@@ -114,56 +103,6 @@ class Program:
             *(textwrap.indent(contents, "    ").splitlines()),
         )
 
-    def check_release_channel(self, channel: ReleaseChannel) -> bool:
-        """
-        Check if the release channel is installed on the system.
-        """
-
-        shell_command = f"command -v google-chrome-{channel}"
-        self.print_debug(f"checking channel: {shell_command}")
-
-        process = subprocess.run(  # noqa: S602
-            shell_command,
-            shell=True,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-
-        if self.debug:
-            self.print_debug(
-                f"command output:",
-                *(textwrap.indent(process.stdout, "    ").splitlines()),
-            )
-
-        return process.returncode == 0
-
-    def determine_release_channel(self) -> ReleaseChannel | None:
-        """
-        Look for the release channel installed on the system.
-
-        If Google Chrome is not installed, returns None.
-
-        If several channels are installed, the most stable one is
-        picked, based on the list provided here:
-        https://www.chromium.org/getting-involved/chrome-release-channels/
-        """
-
-        if self.dry_run:
-            self.print_debug("dry: pretending channel stable is installed")
-
-            return ReleaseChannel.STABLE
-
-        for channel in ReleaseChannel:
-            if self.check_release_channel(channel):
-                self.print_debug(f"channel {channel} is installed")
-
-                return channel
-
-        self.print_debug("no channel was found to be installed")
-
-        return None
-
     def write_file(self, path: str, contents: str) -> None:
         if self.debug:
             self.print_file(path, contents)
@@ -173,39 +112,32 @@ class Program:
                 _ = file.write(contents)
 
     def run(self) -> int:
-        if self.release_channel == "auto":
-            self.print_debug("release channel is set to 'auto'")
-            self.print_debug(
-                "determining which channel is installed...",
-            )
+        # --chrome-release-channel=auto
+        if self.chosen_channel is None:
+            installed_channels = alloy.ReleaseChannel.collect_installed()
+            channel = alloy.select_most_stable_release_channel(installed_channels)
 
-            release_channel = self.determine_release_channel()
-        elif not self.check_release_channel(self.release_channel):
-            self.print_error(
-                f"The release channel {self.release_channel} does "
-                "not seem to be installed on your system.",
-                f"try using {RELEASE_CHANNEL_ARG}='auto'",
-            )
-
-            return os.EX_UNAVAILABLE
+            if channel is None:
+                self.print_error("Chrome is not installed on your system or is not on PATH.")
         else:
-            release_channel = self.release_channel
+            if not alloy.ReleaseChannel(self.chosen_channel).is_installed():
+                self.print_error(
+                    f"Release channel {self.chosen_channel} is "
+                    "not installed on your system.",
+                    f"try using {RELEASE_CHANNEL_ARG}='auto'",
+                )
 
-        if release_channel is None:
-            self.print_error(
-                "Chrome does not seem to be installed on your system.",
-                "maybe it is installed, but not on PATH?",
-            )
+                return os.EX_UNAVAILABLE
 
-            return os.EX_UNAVAILABLE
+            channel = self.chosen_channel
 
-        self.print_debug(f"release channel is {release_channel}")
+        self.print_debug(f"release channel is {channel}")
 
         launching_path = os.path.join(BIN_PATH, "discord-web")
 
         self.write_file(
             launching_path,
-            LAUNCHING_SCRIPT_TEMPLATE.format(release_channel),
+            LAUNCHING_SCRIPT_TEMPLATE.format(channel),
         )
 
         file_stat = os.stat(launching_path)
@@ -218,7 +150,7 @@ class Program:
 
         print(
             f"\x1b[1;32mSUCCESS:\x1b[22;39m Discord Web "
-            f"(google-chrome-{release_channel}) was installed."
+            f"(google-chrome-{channel}) was installed."
         )
 
         return os.EX_OK
