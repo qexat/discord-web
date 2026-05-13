@@ -88,7 +88,7 @@ class Program:
             help="this program will not perform any action ; implies --debug",
         )
 
-        return Program(**parser.parse_args().__dict__)
+        return Program(**vars(parser.parse_args()))
 
     def print_error(self, message: str, *hints: str) -> None:
         print(f"\x1b[1;31mERROR:\x1b[22;39m {message}", file=sys.stderr)
